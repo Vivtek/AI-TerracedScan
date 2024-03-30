@@ -41,12 +41,19 @@ sub post_new {
    $self->{callback} = $parms->{callback}->($self);
    $self->{frame} = $parms->{frame} || {};
    $self->{desc}  = $parms->{desc}  || '';
+   $self->{origin} = $parms->{origin} || '';
       
    $self->{urgency} = $parms->{urgency} || 'musing';
    
    $rack->post ($self);
    
    $self;
+}
+
+sub set_id {
+   my ($self, $id) = @_;
+   $self->{id} = $id;
+   $self->{origin} = $id unless $self->{origin};
 }
 
 sub fizzle {

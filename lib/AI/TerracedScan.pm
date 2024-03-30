@@ -183,13 +183,13 @@ Post a codelet of the named type, with an optional set of parameters which will 
 sub post_codelet {
    my $self = shift;
    my $codelet = shift;
-   my $desc = shift;
+   my $parent = shift;
    my $type_class = $self->{typereg}->{$self->{codelets}->{$codelet}};
    if (not $type_class) {
       # Log a warning, possibly by telling the Coderack to put it in the enactment (which will also include logging), but continue the run
       return;
    }
-   $type_class->post ($self, $codelet, $desc, @_);
+   $type_class->post ($self, $codelet, $parent, @_);
 }
 
 =head2 describe_unit (semunit)

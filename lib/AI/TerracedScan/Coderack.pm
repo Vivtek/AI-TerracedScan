@@ -40,6 +40,7 @@ sub new {
    $self->{scan} = $ts;
    $self->{queue} = Data::Tab->new ([], headers => ['type', 'posted', 'urgency', 'codelet'], primary => 'codelet');
    $self->{enactment} = Data::Tab->new ([], headers => ['type', 'posted', 'run', 'urgency', 'outcome', 'codelet'], primary => 'codelet');
+   $self->{top_id} = 0;
    $self;
 }
 
@@ -52,6 +53,8 @@ Given a parameterized codelet record, adds it to the "queue". Note that the queu
 sub post {
    my ($self, $codelet) = @_;
    $codelet->{posted} = $self->{scan}->ticks;
+   $self->{top_id} += 1;
+   $codelet->set_id($self->{top_id});
    $self->{queue}->add_row ([$codelet->{name}, $self->{scan}->ticks, $codelet->{urgency}, $codelet]);
 }
 
@@ -119,7 +122,8 @@ Provides a convenient list of things yet to happen.
 sub iterate_current {
    my $self = shift;
    return $self->{queue}->iterate()
-          ->calc(sub { defined $_[0]->{desc} ? $_[0]->{desc} : '' }, 'desc', 'codelet');
+          ->calc(sub { defined $_[0]->{origin} ? $_[0]->{origin} : '' }, 'origin', 'codelet')
+          ->calc(sub { defined $_[0]->{desc}   ? $_[0]->{desc}   : '' }, 'desc',   'codelet');
 }
 
 =head2 iterate_enactment ()
@@ -131,8 +135,9 @@ Provides a convenient list of things that have happened so far.
 sub iterate_enactment {
    my $self = shift;
    return $self->{enactment}->iterate()
-          ->calc(sub { defined $_[0]->{desc} ? $_[0]->{desc} : '' }, 'desc', 'codelet')
-          ->calc(sub { defined $_[0]->{rule} ? $_[0]->{rule} : '' }, 'rule', 'codelet');
+          ->calc(sub { defined $_[0]->{origin} ? $_[0]->{origin} : '' }, 'origin', 'codelet')
+          ->calc(sub { defined $_[0]->{desc}   ? $_[0]->{desc}   : '' }, 'desc',   'codelet')
+          ->calc(sub { defined $_[0]->{rule}   ? $_[0]->{rule}   : '' }, 'rule',   'codelet');
 }
 
 
