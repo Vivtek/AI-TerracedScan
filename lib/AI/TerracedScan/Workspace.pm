@@ -219,8 +219,9 @@ sub promote_unit {
    if (not ref $unit) {
       $unit = $self->get_unit_checked($unit);
    }
-   $self->notify ('promote', $unit->get_id, $type, $unit);
    $unit->set_type ($type);
+   $self->notify ('promote', $unit->get_id, $type, $unit);
+   $self->{units}->indexed_setmeta ($unit->get_id, 'type', $type);
 }
 
 =head1 NOTIFICATIONS

@@ -7,6 +7,7 @@ use warnings;
 use AI::TerracedScan::Workspace;
 use AI::TerracedScan::Coderack;
 use Iterator::Records;
+use Time::HiRes;
 use Data::Dumper;
 
 =head1 NAME
@@ -70,6 +71,7 @@ sub _init_ {
    $self->{responses} = $definition->{responses};
    
    $self->{ticks} = 0;
+   $self->{start_clock} = [Time::HiRes::gettimeofday()];
    
    $self->post_scouts();
 
@@ -114,6 +116,8 @@ sub parse_setup {
 }
 
 sub ticks { $_[0]->{ticks}; }
+sub time  { Time::HiRes::tv_interval($_[0]->{start_clock}); }
+sub cps   { $_[0]->ticks / $_[0]->time; }
 
 =head1 RUNNING THE TERRACED SCAN
 

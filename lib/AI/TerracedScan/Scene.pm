@@ -45,6 +45,8 @@ sub new {
    $self->{scan} = $scan;
    $self->{workspace} = $scan->{workspace};
    $self->{units} = {};
+   $self->{labels} = [];
+   $self->{processes} = {};
    $self->{workspace}->subscribe ( sub {
       $self->update (@_);
    });
@@ -67,6 +69,17 @@ sub update {
       $self->{units}->{$id}->{type} = $type;
    }
    $self->display_action ($action, $id, $type, $unit);
+}
+
+sub add_label {
+   my $self = shift;
+   push @{$self->{labels}}, [@_];
+}
+
+sub start_process {
+   my $self = shift;
+   my $id = shift;
+   $self->{processes}->{$id} = shift;
 }
 
 sub display_action { }
