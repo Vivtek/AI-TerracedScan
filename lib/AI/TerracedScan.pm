@@ -33,6 +33,7 @@ The C<parms> are a hash of the following values, all of which are optional:
 =item C<coderack>: A prebuilt coderack object
 =item C<init>: An iterator returning semunits to initialize into the workspace, or a string on which a domain-specific parser can be run to produce such an iterator
 =item C<responses>: A callback function for responses, if the problem defines them
+=item C<parameters>: A hashref of engine parameters
 =back
 
 Any parameter that is missing, will be filled in with a default version. 
@@ -48,10 +49,11 @@ sub new {
 sub _init_ {
    my ($self, $definition) = @_;
    
-   $self->{workspace} = $definition->{workspace} ? $definition->{workspace} : AI::TerracedScan::Workspace->new();
-   $self->{typereg}   = $definition->{typereg}   ? $definition->{typereg}   : {};
-   $self->{codelets}  = {};
-   $self->{coderack}  = $definition->{coderack}  ? $definition->{coderack}  : AI::TerracedScan::Coderack->new($self);
+   $self->{parameters} = $definition->{parameters} ? $definition->{parameters} : {};
+   $self->{workspace}  = $definition->{workspace}  ? $definition->{workspace}  : AI::TerracedScan::Workspace->new();
+   $self->{typereg}    = $definition->{typereg}    ? $definition->{typereg}    : {};
+   $self->{codelets}   = {};
+   $self->{coderack}   = $definition->{coderack}   ? $definition->{coderack}   : AI::TerracedScan::Coderack->new($self);
    
    # Register the codelet types for each type class. By convention, the codelet type starts with its type name, but let's not trust that.
    foreach my $type (keys %{$self->{typereg}}) {
@@ -76,6 +78,21 @@ sub _init_ {
    $self->post_scouts();
 
    $self;
+}
+
+=head1 GETTING PARAMETERS
+
+This is pretty simple.
+
+=head2 parameter (parm, [default])
+
+Returns the parameter, if defined, or the default value (if *that's* defined).
+
+=cut
+
+sub parameter {
+   my ($self, $parm, $default) = @_;
+   $self->{parameters}->{$parm} || $default;
 }
 
 =head1 PARSING THE PROBLEM SETUP
@@ -131,20 +148,22 @@ The main loop is defined on page 87 of Melanie Mitchell's 1990 thesis:
 
 The Slipnet and top-down codelets are irrelevant for Jombu, but we'll get to slipnetted models soon enough.
 
-=head2 step()
+=head2 step([n, default 1])
 
-Runs the terraced scan for one step.
+Runs the terraced scan for one step, or optionally C<n> steps.
 
 =cut
 
 sub step {
    my $self = shift;
    my $count = shift || 1;
+   my $loop_callback = $self->parameter ('loop-callback');
    while ($count) {
       $self->{ticks} += 1;
       $self->{coderack}->choose_and_run();
       $self->post_scouts();
       $count -= 1;
+      $loop_callback->($self) if defined $loop_callback;
    }
 }
 
@@ -160,6 +179,7 @@ sub run {
       #last if $self->ticks() > 5;
       $self->step();
    }
+   return $self->{response};
 }
 
 =head1 USEFUL FUNCTIONS
@@ -167,14 +187,17 @@ sub run {
 =head2 post_scouts ()
 
 This is called periodically when we want to introduce new musing codelets into the mix. Copycat calls this after every N=15 codelet ticks. It iterates over the list of
-types registered, then calls C<propose_scouts> for each type.
+types registered, then calls C<propose_scouts> for each type currently represented in the Workspace.
 
 =cut
 
 sub post_scouts {
    my $self = shift;
-   foreach my $class (values %{$self->{typereg}}) {
-      $class->propose_scouts($self);
+   foreach my $class (keys %{$self->{typereg}}) {
+      if ($self->{workspace}->count($class)) {
+         $class = $self->{typereg}->{$class};
+         $class->propose_scouts($self);
+      }
    }
 }
 

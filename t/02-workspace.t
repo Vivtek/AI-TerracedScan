@@ -73,6 +73,7 @@ is_deeply ([ map { $_->get_id() } $ws->get_unit ('ul1')->list_in($ws->get_unit('
 # Now the same tests at the Workspace level
 is_deeply ([ $ws->container ('ul1') ], ['ul']);
 is_deeply ([ $ws->container ('ul1', 'ul2') ], ['ul']);
+is_deeply ([ $ws->container ('ul2', 'ul1') ], ['ul']); # 2024-05-04 - just checking that this isn't somehow directional
 is_deeply ([ $ws->container ('ul1', 'ul4') ], []);
 
 is_deeply ([ $ws->container_types ('ul1', 'ul2') ], ['letter-string']);
@@ -97,6 +98,15 @@ $ws->unkill_unit ($spark->get_id);
 @c = sort ($ws->container ('ul1', 'ul2'));
 is_deeply (\@c, [$spark->get_id(), 'ul']);
 
+# 2024-05-04 - some more detailed testing of types and directionality here.
+@c = sort ($ws->container_types ('ul1', 'ul2'));
+is_deeply (\@c, ['letter-string', 'spark']);
+$ws->promote_unit ($spark->get_id(), 'bond');
+@c = sort ($ws->container_types ('ul1', 'ul2'));
+is_deeply (\@c, ['bond', 'letter-string']);
+@c = sort ($ws->container_types ('ul2', 'ul1'));
+is_deeply (\@c, ['bond', 'letter-string']);
+
 # Promote the type of a unit to "special-letter"
 $ws->promote_unit ('ul4', 'special-letter');
 is ($ws->get_unit('ul4')->get_type, 'special-letter');
@@ -106,8 +116,11 @@ is_deeply ($log, [
   ['add', 0, 'spark'],
   ['kill', 0, 'spark'],
   ['unkill', 0, 'spark'],
+  ['promote', 0, 'bond'],
   ['promote', 'ul4', 'special-letter'],
 ]);
+
+
 
 done_testing();
 

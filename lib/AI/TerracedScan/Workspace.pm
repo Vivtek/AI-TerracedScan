@@ -45,6 +45,8 @@ sub new {
    my $self = bless ({}, $class);
    $self->{defn} = $definition;
    $self->{units} = Data::Tab->new ([], headers => ['id', 'type', 'unit'], hashkey => 'id', primary => 'unit');
+   $self->{type_counts} = {};
+   $self->{unit_count} = 0;
    $self->{top_id} = 0;
    $self->{subscribers} = [];
    $self;
@@ -110,6 +112,8 @@ sub add_data {
    my $unit = AI::TerracedScan::SemUnit->new ($type, $id, undef, $data);
    
    $self->{units}->add_row ([$id, $type, $unit]);
+   $self->{unit_count} += 1;
+   $self->{type_counts}->{$type} += 1;
    $self->notify ('add', $id, $type, $unit);
    $unit;
 }
@@ -124,6 +128,8 @@ sub add_data_by_id {
    my $unit = AI::TerracedScan::SemUnit->new ($type, $id, undef, $data);
    
    $self->{units}->add_row ([$id, $type, $unit]);
+   $self->{unit_count} += 1;
+   $self->{type_counts}->{$type} += 1;
    $self->notify ('add', $id, $type, $unit);
    $unit;
 }
@@ -165,6 +171,8 @@ sub add_link {
    my $unit = AI::TerracedScan::SemUnit->new ($type, $id, $frame);
    
    $self->{units}->add_row ([$id, $type, $unit]);
+   $self->{unit_count} += 1;
+   $self->{type_counts}->{$type} += 1;
    $self->notify ('add', $id, $type, $unit);
    $unit;
 }
@@ -176,6 +184,8 @@ sub add_link_by_id {
    my $unit = AI::TerracedScan::SemUnit->new ($type, $id, $frame);
    
    $self->{units}->add_row ([$id, $type, $unit]);
+   $self->{unit_count} += 1;
+   $self->{type_counts}->{$type} += 1;
    $self->notify ('add', $id, $type, $unit);
    $unit;
 }
@@ -196,6 +206,8 @@ sub kill_unit {
    if (not ref $unit) {
       $unit = $self->get_unit_checked($unit);
    }
+   $self->{unit_count} -= 1;
+   $self->{type_counts}->{$unit->get_type} -= 1;
    $self->notify ('kill', $unit->get_id, $unit->get_type, $unit);
    $unit->kill;
 }
@@ -205,6 +217,8 @@ sub unkill_unit {
       $unit = $self->get_unit_checked($unit);
    }
    $unit->unkill;
+   $self->{unit_count} += 1;
+   $self->{type_counts}->{$unit->get_type} += 1;
    $self->notify ('unkill', $unit->get_id, $unit->get_type, $unit);
 }
 
@@ -219,7 +233,9 @@ sub promote_unit {
    if (not ref $unit) {
       $unit = $self->get_unit_checked($unit);
    }
+   $self->{type_counts}->{$unit->get_type} -= 1;
    $unit->set_type ($type);
+   $self->{type_counts}->{$type} += 1;
    $self->notify ('promote', $unit->get_id, $type, $unit);
    $self->{units}->indexed_setmeta ($unit->get_id, 'type', $type);
 }
@@ -248,6 +264,18 @@ sub notify {
 }
 
 =head1 STATISTICS AND LISTS
+
+=head2 count ([unit type])
+
+Returns the number of (live) units of a given type, or the total number of (live) units in the Workspace if no type is specified.
+
+=cut
+
+sub count {
+   my ($self, $type) = @_;
+   return $self->{unit_count} unless defined $type;
+   return $self->{type_counts}->{$type} || 0;
+}
 
 =head2 list_types ()
 

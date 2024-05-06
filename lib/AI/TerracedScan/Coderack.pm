@@ -40,6 +40,8 @@ sub new {
    $self->{scan} = $ts;
    $self->{queue} = Data::Tab->new ([], headers => ['type', 'posted', 'urgency', 'codelet'], primary => 'codelet');
    $self->{enactment} = Data::Tab->new ([], headers => ['type', 'posted', 'run', 'urgency', 'outcome', 'codelet'], primary => 'codelet');
+   $self->{type_counts} = {};
+   $self->{codelet_count} = 0;
    $self->{top_id} = 0;
    $self;
 }
@@ -55,6 +57,8 @@ sub post {
    $codelet->{posted} = $self->{scan}->ticks;
    $self->{top_id} += 1;
    $codelet->set_id($self->{top_id});
+   $self->{type_counts}->{$codelet->{name}} += 1;
+   $self->{codelet_count} += 1;
    $self->{queue}->add_row ([$codelet->{name}, $self->{scan}->ticks, $codelet->{urgency}, $codelet]);
 }
 
@@ -69,6 +73,8 @@ sub choose_and_run {
    my $self = shift;
    return unless $self->{queue}->rows(); # Do nothing if queue is empty
    my $row = $self->{queue}->take_row ($self->choose_codelet());
+   $self->{type_counts}->{$row->[0]} -= 1;
+   $self->{codelet_count} -= 1;
    $self->run_codelet ($row->[3]);
 }
 
@@ -95,6 +101,18 @@ sub choose_codelet {
       }
    }
    return $winner;
+}
+
+=head2 count ([codelet type])
+
+Returns the number of codelets of a given type, or the total number of codelets currently on the rack if no type is specified.
+
+=cut
+
+sub count {
+   my ($self, $type) = @_;
+   return $self->{codelet_count} unless defined $type;
+   return $self->{type_counts}->{$type} || 0;
 }
 
 =head2 run_codelet (codelet)
