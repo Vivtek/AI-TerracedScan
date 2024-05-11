@@ -23,6 +23,14 @@ ok ($su2->get ('content') == $su);
 $su2->set ('content2', AI::TerracedScan::SemUnit->new ('def', undef, undef, '#2 here'));
 ok ($su2->get ('content2')->get_data() eq '#2 here');
 
+# Check our list of contents so far
+my @data_list;
+@data_list = sort $su2->slots();
+is_deeply (\@data_list, ['content', 'content2']);
+
+@data_list = sort map { $_->get_data(); } $su2->list_content();
+is_deeply (\@data_list, ['#2 here', 'different data']);
+
 # Exercise has_slot
 ok ($su2->has_slot ('content2'));
 ok (not $su2->has_slot ('list'));
@@ -42,7 +50,7 @@ ok (scalar @$list == 5);
 isa_ok ($list->[0], 'AI::TerracedScan::SemUnit');
 isa_ok ($list->[1], 'AI::TerracedScan::SemUnit');
 
-my @data_list = sort map { $_->get_data(); } @$list; # Have to sort because the list order is undetermined
+@data_list = sort map { $_->get_data(); } @$list; # Have to sort because the list order is undetermined
 is_deeply (\@data_list, ['#3 here', '#4 here', '#5 here', '#6 here', '#7 here']);
 
 ok ($list->[1]->is_in_slot ('set'));

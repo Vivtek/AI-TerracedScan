@@ -134,6 +134,10 @@ sub get_containers {
    }
    return $self->{frames_in}->{$slot};
 }
+sub slots {
+   my ($self) = @_;
+   keys %{$self->{frame}};
+}
 sub has_slot {
    my ($self, $slot) = @_;
    defined ($self->{frame}->{$slot});
@@ -142,6 +146,22 @@ sub is_in_slot {
    my ($self, $slot) = @_;
    return 0 unless defined ($self->{frames_in}->{$slot});
    return scalar values %{$self->{frames_in}->{$slot}};
+}
+sub list_content {
+   my ($self) = @_;
+   my $collector = {};
+   foreach my $slot (values %{$self->{frame}}) {
+      if (ref $slot ne 'HASH') {
+         next if $slot->{deleted};
+         $collector->{$slot} = $slot;
+      } else {
+         foreach my $p (values %$slot) {
+            next if $p->{deleted};
+            $collector->{$p} = $p;
+         }
+      }
+   }
+   return values %$collector;
 }
 
 =head2 get_type(), set_type()
