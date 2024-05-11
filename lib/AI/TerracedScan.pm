@@ -264,7 +264,7 @@ sub decide_success {
 
 sub decide_yesno {
    my ($self, $p) = @_;
-   return (rand() * 100 > $p);
+   return (rand() * 100 < $p);
 }
 
 =head1 AUTHOR
