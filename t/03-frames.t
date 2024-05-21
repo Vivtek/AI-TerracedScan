@@ -34,6 +34,13 @@ is_deeply ([ $f->list_ids ('letter') ], ['ul2']);
 is ($f->count(), 2);
 is ($f->count('letter'), 1);
 
+# Make a neighborhood frame
+$f = $ws->get_neighborhood ('ul1');
+is_deeply ([ sort $f->list_ids() ], ['ul', 'ul1', 'ul2']);
+is_deeply ([ sort $f->list_types() ], ['letter', 'letter-string']);
+is ($f->count(), 3);
+is ($f->count('letter'), 2);
+
 done_testing();
 
 

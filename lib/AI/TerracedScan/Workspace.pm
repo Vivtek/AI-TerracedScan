@@ -6,6 +6,7 @@ use warnings;
 
 use Data::Tab;
 use AI::TerracedScan::SemUnit;
+use AI::TerracedScan::Frame;
 use Carp;
 use List::Util qw(uniq);
 use Data::Dumper;
@@ -336,9 +337,10 @@ sub container_types {
    map { $_->get_type() } $unit->list_in (@others);
 }
 
-=head2 choose_units ([type], [number])
+=head2 choose_units ([type], [number]), choose_units_ids ([type], [number]), choose_units_obj ([type], [number])
 
 Randomly selects one or units at random from the Workspace; if the type is specified it restricts the search. If the number is not specified, it defaults to 1.
+The C<choose_units> method returns the entire row from the Workspace, C<choose_units_ids> returns their IDs, and C<choose_units_obj> returns the actual semunit objects.
 
 =cut
 
@@ -367,7 +369,53 @@ sub choose_units {
       #print STDERR Dumper (\@winners);
    }
    return map { $_->[0] } @winners;
+}
 
+sub choose_units_ids {
+   return map { $_->[0] } choose_units (@_);
+}
+sub choose_units_obj {
+   return map { $_->[2] } choose_units (@_);
+}
+
+=head2 get_neighborhood (unit, type, [type...])
+
+This method starts at a given unit in the Workspace and constructs a frame by spreading along links to units to containing units, their other contents, and so on. This
+spread can be restricted to a list of types. The unit originally identified is marked by 'fg' (foreground).
+
+=cut
+
+sub get_neighborhood {
+   my $self = shift;
+   my $unit = shift;
+   
+   my $restricted = 0;
+   my %types;
+   foreach my $type (@_) {
+      $restricted = 1;
+      $types{$type} = 1;
+   }
+   
+   my $f = AI::TerracedScan::Frame->new ($self);
+   my $id = $f->add_unit ($unit, 'fg');
+   $unit = $f->get_unit ($id);  # We end up with the unit object even if we passed in the ID.
+   
+   my %seen;
+   my @queue = ($unit);
+   while (@queue) {
+      my $next = shift @queue;
+      my $next_id = $next->get_id();
+      next if $seen{$next_id};
+      $seen{$next_id} = 1;
+      
+      foreach my $neighbor ($next->list_in(), $next->list_content()) {
+         next if $restricted and not $types{$neighbor->get_type()};
+         $f->add_unit ($neighbor);
+         push @queue, $neighbor;
+      }
+   }
+   
+   return $f;
 }
 
 =head2 iterate_units(descriptor)

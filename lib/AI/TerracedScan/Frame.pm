@@ -68,8 +68,8 @@ sub add_unit {
    my ($self, $unit, $name) = @_;
    my $id;
    ($id, $unit) = $self->normalize_unit ($unit);
+   $self->{types}->{$unit->get_type()} += 1 unless $self->{units}->{$id};
    $self->{units}->{$id} = $unit;
-   $self->{types}->{$unit->get_type()} += 1;
    
    $self->identify_unit ($id, $name) if defined $name;
    return $id;
