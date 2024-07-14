@@ -86,7 +86,7 @@ $ws->subscribe (sub {
 });
 
 # Make a spark between two letters, kill and see that it no longer shows, then resurrect it and see that it reappears.
-my $spark = $ws->add_link ('spark', {from=>'ul1', to=>'ul2'});
+my $spark = $ws->add_link ('spark', undef, {from=>'ul1', to=>'ul2'});
 my @c = sort ($ws->container ('ul1', 'ul2'));
 is_deeply (\@c, [$spark->get_id(), 'ul']);  # Our new spark gets a numeric ID, since we didn't specify any explicit ID, and thus sorts before 'ul'
 #$spark->kill;

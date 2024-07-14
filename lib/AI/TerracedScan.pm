@@ -5,6 +5,7 @@ use strict;
 use warnings;
 
 use AI::TerracedScan::Workspace;
+use AI::TerracedScan::Codelet;
 use AI::TerracedScan::Coderack;
 use Iterator::Records;
 use Time::HiRes;
@@ -52,17 +53,18 @@ sub _init_ {
    $self->{parameters} = $definition->{parameters} ? $definition->{parameters} : {};
    $self->{workspace}  = $definition->{workspace}  ? $definition->{workspace}  : AI::TerracedScan::Workspace->new();
    $self->{typereg}    = $definition->{typereg}    ? $definition->{typereg}    : {};
-   $self->{codelets}   = {};
+   $self->{musing}     = $definition->{musing}     ? $definition->{musing}     : {};
+   $self->{codelets}   = $definition->{codelets}   ? $definition->{codelets}   : {};
    $self->{coderack}   = $definition->{coderack}   ? $definition->{coderack}   : AI::TerracedScan::Coderack->new($self);
    
    # Register the codelet types for each type class. By convention, the codelet type starts with its type name, but let's not trust that.
-   foreach my $type (keys %{$self->{typereg}}) {
-      my $type_class = $self->{typereg}->{$type};
-      #require $type_class;
-      foreach my $codelet_type ($type_class->codelets()) {
-         $self->{codelets}->{$codelet_type} = $type;
-      }
-   }
+   #foreach my $type (keys %{$self->{typereg}}) {
+   #   my $type_class = $self->{typereg}->{$type};
+   #   #require $type_class;
+   #   foreach my $codelet_type ($type_class->codelets()) {
+   #      $self->{codelets}->{$codelet_type} = $type;
+   #   }
+   #}
    
    my $iterator = $definition->{init};
    if (defined $iterator and not ref $iterator) {
@@ -127,9 +129,9 @@ sub parse_setup {
             $frame->{$key} = $val;
          }
       }
-      push @$units, [$type, $id, $data, $frame];
+      push @$units, [$type, $id, $data, $frame, undef];
    }
-   return Iterator::Records->new ($units, ['type', 'id', 'data', 'frame']);
+   return Iterator::Records->new ($units, ['type', 'id', 'data', 'frame', 'desc']);
 }
 
 sub ticks { $_[0]->{ticks}; }
@@ -193,35 +195,74 @@ types registered, then calls C<propose_scouts> for each type currently represent
 
 sub post_scouts {
    my $self = shift;
-   foreach my $class (keys %{$self->{typereg}}) {
+   foreach my $class (keys %{$self->{musing}}) {
       if ($self->{workspace}->count($class)) {
-         $class = $self->{typereg}->{$class};
-         $class->propose_scouts($self);
+         foreach my $spec (@{$self->{musing}->{$class}}) {
+            my ($codelet, $maxlevel, $probability) = @$spec;
+            if ($probability == 100) {
+               $self->post_codelet ($codelet) if $self->{coderack}->count($codelet) < $maxlevel;
+            } else {
+               $self->post_codelet ($codelet) if $self->{coderack}->count($codelet) < $maxlevel and $self->decide_success ($probability);
+            }
+         }
       }
    }
+   #foreach my $class (keys %{$self->{typereg}}) {
+   #   if ($self->{workspace}->count($class)) {
+   #      $class = $self->{typereg}->{$class};
+   #      $class->propose_scouts($self);
+   #   }
+   #}
 }
 
-=head2 post_codelet (codelet-type, [parameters])
+=head2 post_codelet (codelet-type, parent, frame, parameters)
 
-Post a codelet of the named type, with an optional set of parameters which will generally be units bound to the codelet.
+Post a codelet of the named type, optionally with its parent codelet (null for musing codelets), frame (just a scalar hashref with named single units),
+and parameters (another hashref, currently just checked for 'desc' (additional descriptive information for the codelet instance) and 'urgency' (default 'musing'))
 
 =cut
 
 sub post_codelet {
    my $self = shift;
    my $codelet = shift;
-   my $parent = shift;
-   my $type_class = $self->{typereg}->{$self->{codelets}->{$codelet}};
-   if (not $type_class) {
-      # Log a warning, possibly by telling the Coderack to put it in the enactment (which will also include logging), but continue the run
+   my $parent  = shift || '';
+   my $frame   = shift;
+   my $parms   = shift || {};
+   my $desc    = $parms->{desc}    ? $parms->{desc}    : $parent ? $parent->{desc} : '';
+   my $urgency = $parms->{urgency} ? $parms->{urgency} : 'musing';
+   my $c = $self->{codelets}->{$codelet};
+   if (not $c) {
+      my $m = "Attempt to post unknown codelet '$codelet'";
+      $m .= " (parent " . $parent->{id} . ")" if $parent;
+      $self->log_message ('error', $m);
       return;
    }
-   $type_class->post ($self, $codelet, $parent, @_);
+   
+   AI::TerracedScan::Codelet->post_new ($self, {
+      type => $c->[0],
+      name => $codelet,
+      desc => $desc,
+      origin => $parent ? $parent->{origin} : '',
+      urgency => $urgency,
+      frame => $frame,
+      callback => sub { my $cr = shift; return sub { $c->[1]->( $self, $cr ); }; },
+   });
+}
+
+=head2 log_message (type, text)
+
+Logs a message to the Coderack's enactment.
+
+=cut
+
+sub log_message {
+   my ($self, $type, $text) = @_;
+   $self->{coderack}->log_message ($type, $text);
 }
 
 =head2 describe_unit (semunit)
 
-Given a semantic unit, ask its type class for a brief descriptive string.
+Given a semantic unit, ask its type class for a brief descriptive string. (THIS IS PROBABLY OBSOLETE.)
 
 =cut
 
@@ -239,14 +280,15 @@ Iterates over the units in the workspace and describes each of them in the way t
 
 sub iterate_workspace {
    my $self = shift;
-   $self->{workspace}->iterate_units(sub { $self->describe_unit ($_[0]); });
+   $self->{workspace}->iterate_units();
 }
 
 =head2 decide_failure (p), decide_success (p), decide_yesno (p)
 
 These each return true or false based on the probability "p" provided, but they each skew differently based on the temperature of the Workspace.
-A failure is *less* probable as temperature rises (C<p> skews down), a success is *more* probable (C<p> skews up), and a yes/no decision is more 
-evenly balanced ((C<p> skews closer to 50%).
+A failure is *less* probable as temperature falls (C<p> skews down), a success is *more* probable (C<p> skews up), and a yes/no decision is more 
+evenly balanced ((C<p> skews closer to 50%). The rationale is that we are more likely to believe that our guesses are right, as temperature falls;
+at higher temperature we're more likely to just choose randomly.
 
 The probability is given as a percentage, just to make things easier to read in the caller.
 
@@ -262,7 +304,7 @@ sub decide_success {
    return (rand() * 100 > $p);
 }
 
-sub decide_yesno {
+sub decide_yesno { # Should yes/no even skew with temperature?
    my ($self, $p) = @_;
    return (rand() * 100 < $p);
 }

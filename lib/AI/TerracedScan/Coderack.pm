@@ -131,6 +131,18 @@ sub run_codelet {
    $self->{enactment}->add_row ([$codelet->{name}, $codelet->{posted}, $self->{scan}->ticks, $codelet->{urgency}, $outcome, $codelet]);
 }
 
+=head2 log_message (type, message)
+
+Posts a message of arbitrary type to the enactment. Obviously, the type should not collide with any codelet name or it will get confusing.
+
+=cut
+
+sub log_message {
+   my ($self, $type, $text) = @_;
+   
+   $self->{enactment}->add_row ([$type, $self->{scan}->ticks, $self->{scan}->ticks, '--', $text, undef]);
+}
+
 =head2 iterate_current ()
 
 Provides a convenient list of things yet to happen.

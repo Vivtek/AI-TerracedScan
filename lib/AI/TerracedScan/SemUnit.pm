@@ -30,13 +30,14 @@ a workspace structure. If the unit is a sensory unit, it represents data outside
 =cut
 
 sub new {
-   my ($class, $type, $id, $frame, $data) = @_;
+   my ($class, $type, $id, $frame, $data, $desc) = @_;
    my $self = bless ({}, $class);
    $self->{type} = $type;
    $self->{frame} = {};
    $self->{frames_in} = {};
    $self->set_data ($data) if defined $data;
    $self->{id} = ref $id ? $id->get_id() : $id if defined $id;
+   $self->{desc} = defined $desc ? $desc : defined $id ? $self->{type} . '-' . $self->{id} : $self->{type};
    $self->{deleted} = 0;
    
    if (defined $frame) {
@@ -207,6 +208,18 @@ sub get_id {
 sub set_id {
    my ($self, $data) = @_;
    $self->{id} = $data;
+}
+
+=head2 describe ([new description])
+
+Gets or sets the description of the unit used in logs and readouts.
+
+=cut
+
+sub describe {
+   my ($self, $describe) = @_;
+   $self->{desc} = $describe if defined $describe;
+   $self->{desc};
 }
 
 =head2 list_in (units), list_in_dead (units)

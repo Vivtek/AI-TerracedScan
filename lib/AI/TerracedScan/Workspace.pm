@@ -55,7 +55,7 @@ sub new {
 
 =head2 load_iterator (iterator)
 
-Loads a Workspace from an iterator that returns semunits, or rather, returns C<[type, id, data, frame]>, where C<frame> is a hashref of named slots containing the
+Loads a Workspace from an iterator that returns semunits, or rather, returns C<[type, id, data, frame, desc]>, where C<frame> is a hashref of named slots containing the
 IDs of units already appearing in the Workspace. (If not, it's an error.)
 
 =cut
@@ -65,18 +65,18 @@ sub load_iterator {
    
    my $it = $iterator->iter;
    while (my $row = $it->()) {
-      my ($type, $id, $data, $frame) = @$row;
+      my ($type, $id, $data, $frame, $desc) = @$row;
       if (defined $data) {
          if (defined $id) {
-            $self->add_data_by_id ($id, $type, $data);
+            $self->add_data_by_id ($id, $type, $desc, $data);
          } else {
-            $self->add_data ($type, $data);
+            $self->add_data ($type, $desc, $data);
          }
       } else {
          if (defined $id) {
-            $self->add_link_by_id ($id, $type, $frame);
+            $self->add_link_by_id ($id, $type, $desc, $frame);
          } else {
-            $self->add_link ($type, $frame);
+            $self->add_link ($type, $desc, $frame);
          }
       }
    }
@@ -95,7 +95,7 @@ sub load_defn {
 
 Once set up, the Workspace is expected to change by the addition of new units, killing (and possible unkilling) of old units, and the promotion of units to different types.
 
-=head2 add_data (type, data), add_data_by_id (ID, type, data)
+=head2 add_data (type, desc, data), add_data_by_id (ID, type, desc, data)
 
 Adds a data unit. The data is an arbitrary scalar value, but will often be or inherit from AI::TerracedScan::Data so that it can specify value-specific semantics.
 If an explicit unique ID is needed, use C<add_data_by_id>; otherwise, a unique ID will be supplied by the workspace.
@@ -103,14 +103,15 @@ If an explicit unique ID is needed, use C<add_data_by_id>; otherwise, a unique I
 =cut
 
 sub add_data {
-   my ($self, $type, @data) = @_;
+   my ($self, $type, $desc, @data) = @_;
    my $data = $data[0];
    
    # TODO: if $data is a scalar, check whether $type has a registered constructor and call it to get a ::Data object
    
    my $id = $self->{top_id};
    $self->{top_id} += 1;
-   my $unit = AI::TerracedScan::SemUnit->new ($type, $id, undef, $data);
+   my $unit = AI::TerracedScan::SemUnit->new ($type, $id, undef, $data, $desc);
+   #$unit->describe ($data) unless ref $data;
    
    $self->{units}->add_row ([$id, $type, $unit]);
    $self->{unit_count} += 1;
@@ -119,14 +120,14 @@ sub add_data {
    $unit;
 }
 sub add_data_by_id {
-   my ($self, $id, $type, @data) = @_;
+   my ($self, $id, $type, $desc, @data) = @_;
    croak 'null id when adding by id' unless defined $id;
 
    my $data = $data[0];
    
    # TODO: if $data is a scalar, check whether $type has a registered constructor and call it to get a ::Data object
    
-   my $unit = AI::TerracedScan::SemUnit->new ($type, $id, undef, $data);
+   my $unit = AI::TerracedScan::SemUnit->new ($type, $id, undef, $data, $desc);
    
    $self->{units}->add_row ([$id, $type, $unit]);
    $self->{unit_count} += 1;
@@ -164,12 +165,12 @@ sub _frame_lookup {
 }
 
 sub add_link {
-   my ($self, $type, $frame) = @_;
+   my ($self, $type, $desc, $frame) = @_;
    $self->_frame_lookup ($frame);
 
    my $id = $self->{top_id};
    $self->{top_id} += 1;
-   my $unit = AI::TerracedScan::SemUnit->new ($type, $id, $frame);
+   my $unit = AI::TerracedScan::SemUnit->new ($type, $id, $frame, undef, $desc);
    
    $self->{units}->add_row ([$id, $type, $unit]);
    $self->{unit_count} += 1;
@@ -178,11 +179,11 @@ sub add_link {
    $unit;
 }
 sub add_link_by_id {
-   my ($self, $id, $type, $frame) = @_;
+   my ($self, $id, $type, $desc, $frame) = @_;
    croak 'null id when adding by id' unless defined $id;
    $self->_frame_lookup ($frame);
 
-   my $unit = AI::TerracedScan::SemUnit->new ($type, $id, $frame);
+   my $unit = AI::TerracedScan::SemUnit->new ($type, $id, $frame, undef, $desc);
    
    $self->{units}->add_row ([$id, $type, $unit]);
    $self->{unit_count} += 1;
@@ -431,7 +432,7 @@ sub iterate_units {
    if (not defined $descriptor) {
       $descriptor = sub {
          my $unit = shift;
-         return $unit->{type} . '-' . $unit->{id};
+         return $unit->describe;
       };
    }
    return $self->{units}->iterate()

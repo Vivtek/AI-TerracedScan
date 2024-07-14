@@ -43,13 +43,13 @@ sub new {
    my ($class, $scan) = @_;
    my $self = bless ({}, $class);
    $self->{scan} = $scan;
-   $self->{workspace} = $scan->{workspace};
+   $self->{workspace} = $scan->{workspace} if defined $scan;
    $self->{units} = {};
    $self->{labels} = [];
    $self->{processes} = {};
    $self->{workspace}->subscribe ( sub {
       $self->update (@_);
-   });
+   }) if defined $scan;  # If we don't have a scan, it's because we're replaying a stored run, so there's nothing to subscribe to.
    $self;
 }
 
