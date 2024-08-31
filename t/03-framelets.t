@@ -7,7 +7,7 @@ use Data::Dumper;
 
 # Here we go.
 use AI::TerracedScan;
-use AI::TerracedScan::Frame;
+use AI::TerracedScan::Framelet;
 
 my $ts = AI::TerracedScan->new ({init => <<"EOF"});
 letter ul1 a
@@ -21,7 +21,7 @@ is_deeply ([ $ws->list_types() ], ['letter', 'letter-string']);
 is_deeply ([ sort $ws->list_ids() ], ['ul', 'ul1', 'ul2', 'ul3']);
 
 # Make a frame and put some of our units into it.
-my $f = AI::TerracedScan::Frame->new($ws);
+my $f = AI::TerracedScan::Framelet->new($ws);
 $f->add_unit ('ul', 'string');
 $f->add_unit ('ul2');
 is_deeply ([ sort $f->list_types() ], ['letter', 'letter-string']);

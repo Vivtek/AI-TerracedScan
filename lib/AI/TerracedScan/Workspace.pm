@@ -6,7 +6,7 @@ use warnings;
 
 use Data::Tab;
 use AI::TerracedScan::SemUnit;
-use AI::TerracedScan::Frame;
+use AI::TerracedScan::Framelet;
 use Carp;
 use List::Util qw(uniq);
 use Data::Dumper;
@@ -381,7 +381,7 @@ sub choose_units_obj {
 
 =head2 get_neighborhood (unit, type, [type...])
 
-This method starts at a given unit in the Workspace and constructs a frame by spreading along links to units to containing units, their other contents, and so on. This
+This method starts at a given unit in the Workspace and constructs a framelet by spreading along links to units to containing units, their other contents, and so on. This
 spread can be restricted to a list of types. The unit originally identified is marked by 'fg' (foreground).
 
 =cut
@@ -397,7 +397,7 @@ sub get_neighborhood {
       $types{$type} = 1;
    }
    
-   my $f = AI::TerracedScan::Frame->new ($self);
+   my $f = AI::TerracedScan::Framelet->new ($self);
    my $id = $f->add_unit ($unit, 'fg');
    $unit = $f->get_unit ($id);  # We end up with the unit object even if we passed in the ID.
    
