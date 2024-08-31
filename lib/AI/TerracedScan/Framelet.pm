@@ -1,4 +1,4 @@
-package AI::TerracedScan::Frame;
+package AI::TerracedScan::Framelet;
 
 use 5.006;
 use strict;
@@ -6,7 +6,7 @@ use warnings;
 
 =head1 NAME
 
-AI::TerracedScan::Frame - A subset of the Workspace (a set of units, with optional slots foregrounding/naming one or more)
+AI::TerracedScan::Framelet - A subset of the Workspace (a set of units, with optional slots foregrounding/naming one or more)
 
 =head1 VERSION
 
@@ -19,7 +19,7 @@ our $VERSION = '0.01';
 
 =head1 SYNOPSIS
 
-A C<Frame> is used as a temporary structure to pull out subsets of the units in the Workspace and identify some by role. This is a useful abstraction for
+A C<Framelet> is used as a temporary structure to pull out subsets of the units in the Workspace and identify some by role. This is a useful abstraction for
 codelet design. I suspect it's going to evolve into something more interesting over time, but right now its purpose is the simplification of codelet structure.
 
 Right now, this overlaps a lot with C<SemUnit>; it's probable they'll merge into a single class at some point, but I'm not yet clear just how. I assume it will
@@ -29,7 +29,7 @@ get a lot clearer as I work through a few use cases.
 
 =head2 new (workspace)
 
-Creates a new frame.
+Creates a new framelet.
 
 =cut
 
@@ -194,7 +194,7 @@ automatically be notified of progress on your bug as I make changes.
 
 You can find documentation for this module with the perldoc command.
 
-    perldoc AI::TerracedScan::SemUnit
+    perldoc AI::TerracedScan::Framelet
 
 
 You can also look for information at:
@@ -230,4 +230,4 @@ This is free software, licensed under:
 
 =cut
 
-1; # End of AI::TerracedScan::SemUnit
+1; # End of AI::TerracedScan::Framelet
