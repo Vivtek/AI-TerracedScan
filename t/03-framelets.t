@@ -29,6 +29,9 @@ is_deeply ([ sort $f->list_ids() ], ['ul', 'ul2']);
 is_deeply ([ $f->get_ids ('string') ], ['ul']);
 is_deeply ([ $f->get ('string') ], [$ws->get_unit ('ul')]);
 
+is ($f->get_one_id ('string'), 'ul');
+is ($f->get_one ('string'), $ws->get_unit ('ul'));
+
 is_deeply ([ $f->list_ids ('letter') ], ['ul2']);
 
 is ($f->count(), 2);

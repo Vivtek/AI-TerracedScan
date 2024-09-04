@@ -379,6 +379,22 @@ sub choose_units_obj {
    return map { $_->[2] } choose_units (@_);
 }
 
+=head1 FRAMELETS
+
+A framelet is a little bit of Workspace pinched off into a context. We can think of a framelet as "seeing units as" something. The framelet is of the Workspace but not in it;
+it's generally going to be used as the context for a codelet, but it's a way of standardizing particular ways of looking at things.
+
+=head2 framelet ()
+
+Gets a blank framelet that will be interpreted relative to this Workspace.
+
+=cut
+
+sub framelet {
+   my $self = shift;
+   AI::TerracedScan::Framelet->new ($self);
+}
+
 =head2 get_neighborhood (unit, type, [type...])
 
 This method starts at a given unit in the Workspace and constructs a framelet by spreading along links to units to containing units, their other contents, and so on. This
@@ -397,7 +413,7 @@ sub get_neighborhood {
       $types{$type} = 1;
    }
    
-   my $f = AI::TerracedScan::Framelet->new ($self);
+   my $f = $self->framelet;
    my $id = $f->add_unit ($unit, 'fg');
    $unit = $f->get_unit ($id);  # We end up with the unit object even if we passed in the ID.
    
@@ -418,6 +434,10 @@ sub get_neighborhood {
    
    return $f;
 }
+
+=head1 READING THE WORKSPACE
+
+It's possible to iterate over all the units in the Workspace.
 
 =head2 iterate_units(descriptor)
 

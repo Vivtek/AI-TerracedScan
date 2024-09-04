@@ -120,6 +120,26 @@ sub get_ids {
    return keys %{$self->{slots}->{$name}};
 }
 
+=head2 get_one (name), get_one_id (name)
+
+In cases where we know that a slot has a single value, we can just get that value instead of a list. If the slot actually does have multiple values, we'll end
+up returning one at random.
+
+=cut
+
+sub get_one {
+   my ($self, $name) = @_;
+   #$self->{slots}->{$name} = {} unless defined $self->{slots}->{$name};
+   my @v = $self->get($name);
+   return $v[0];
+}
+sub get_one_id {
+   my ($self, $name) = @_;
+   #$self->{slots}->{$name} = {} unless defined $self->{slots}->{$name};
+   my @v = $self->get_ids($name);
+   return $v[0];
+}
+
 =head2 units ([type]), list_ids ([type])
 
 Returns a list of units (or their IDs) contained in the frame, optionally constraining the list to a specific unit type. The order of the list is arbitrary.
